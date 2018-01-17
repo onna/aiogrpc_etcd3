@@ -1,0 +1,6 @@
+*.pyc
+venvetcd
+*.egg-info
+__pycache__
+.cache
+.hypothesis
