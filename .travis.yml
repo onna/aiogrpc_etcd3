@@ -25,4 +25,3 @@ deploy:
     tags: true
     distributions: sdist bdist_wheel
     repo: onna/aiogrpc_etcd3
-    condition: $TOXENV == py36
