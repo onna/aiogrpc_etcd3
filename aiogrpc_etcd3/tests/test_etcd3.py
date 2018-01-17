@@ -587,7 +587,8 @@ class TestEtcd3(object):
 #     def test_status_member(self, etcd):
 #         status = etcd.status()
 
-#         assert isinstance(status.leader, aiogrpc_etcd3.members.Member) is True
+#         assert isinstance(status.leader, aiogrpc_etcd3.members.Member) is \
+#             True
 #         assert status.leader.id in [m.id for m in etcd.members]
 
 #     def test_hash(self, etcd):
