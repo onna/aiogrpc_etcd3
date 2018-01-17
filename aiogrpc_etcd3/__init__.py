@@ -10,7 +10,7 @@ from aiogrpc_etcd3.members import Member
 
 __author__ = 'Ramon Navarro'
 __email__ = 'ramon@onna.com'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 __all__ = (
     'etcdrpc',
