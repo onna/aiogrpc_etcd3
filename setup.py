@@ -17,7 +17,7 @@ test_requirements = load_reqs('test-requirements.txt')
 
 setup(
     name='aiogrpc_etcd3',
-    version='0.1.1',
+    version='0.1.2',
     description='AsyncIO ETCD3 GRPC driver',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
