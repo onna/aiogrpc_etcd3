@@ -127,7 +127,8 @@ class Etcd3Client(object):
                     cert_cert
                 )
                 self.uses_secure_channel = True
-                self.channel = aiogrpc.secure_channel(self._url, credentials, loop=loop)
+                self.channel = aiogrpc.secure_channel(
+                    self._url, credentials, loop=loop)
             elif any(cert_params):
                 # some of the cert parameters are set
                 raise ValueError(
@@ -136,7 +137,8 @@ class Etcd3Client(object):
             else:
                 credentials = self._get_secure_creds(ca_cert, None, None)
                 self.uses_secure_channel = True
-                self.channel = aiogrpc.secure_channel(self._url, credentials, loop=loop)
+                self.channel = aiogrpc.secure_channel(
+                    self._url, credentials, loop=loop)
         else:
             self.uses_secure_channel = False
             self.channel = aiogrpc.insecure_channel(self._url, loop=loop)
