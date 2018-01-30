@@ -177,6 +177,7 @@ class Etcd3Client(object):
             WatchStub(self.channel),
             timeout=self.timeout,
             call_credentials=self.call_credentials,
+            loop=self._loop
         )
         self.watchtask = self._loop.create_task(self.watcher.run())
         self.clusterstub = ClusterStub(self.channel)

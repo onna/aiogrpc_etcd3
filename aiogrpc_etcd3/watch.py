@@ -27,17 +27,18 @@ class Watch(object):
 
 class Watcher(object):
 
-    def __init__(self, watchstub, timeout=None, call_credentials=None):
+    def __init__(self, watchstub, timeout=None, call_credentials=None, loop=None):
         self.timeout = timeout
         self._watch_id_callbacks = {}
-        self._watch_id_queue = asyncio.Queue()
-        self._watch_id_lock = asyncio.Lock()
-        self._watch_requests_queue = asyncio.Queue()
+        self._watch_id_queue = asyncio.Queue(loop=loop)
+        self._watch_id_lock = asyncio.Lock(loop=loop)
+        self._watch_requests_queue = asyncio.Queue(loop=loop)
         self._watch_response_iterator = watchstub.Watch(
             self._requests_iterator,
             credentials=call_credentials
         )
         self._callback = None
+        self._loop = loop
 
     async def run(self):
         try:
