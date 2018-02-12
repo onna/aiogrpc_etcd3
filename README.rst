@@ -25,6 +25,7 @@ Python client for the etcd API v3, supported under python 3.6 and aioGRPC
 
 **disclaimer**
 
+There is a memory leak due to aiogrpc stream-stream
 This code is a fork of https://github.com/kragniz/python-etcd3 with asyncio and aiogrpc
 
 **Warning: the API is mostly stable, but may change in the future**
