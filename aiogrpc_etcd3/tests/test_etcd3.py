@@ -584,12 +584,12 @@ class TestEtcd3(object):
 #         with pytest.raises(grpc.RpcError):
 #             etcd.get("foo")
 
-#     def test_status_member(self, etcd):
-#         status = etcd.status()
+    async def test_status_member(self, etcd):
+        status = await etcd.status()
 
-#         assert isinstance(status.leader, aiogrpc_etcd3.members.Member) is \
-#             True
-#         assert status.leader.id in [m.id for m in etcd.members]
+        assert isinstance(status.leader, aiogrpc_etcd3.members.Member) is \
+            True
+        assert status.leader.id in [m.id async for m in etcd.members]
 
 #     def test_hash(self, etcd):
 #         assert isinstance(etcd.hash(), int)
