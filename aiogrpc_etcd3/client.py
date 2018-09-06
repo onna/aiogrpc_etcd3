@@ -445,7 +445,7 @@ class Etcd3Client(object):
             credentials=self.call_credentials,
         )
 
-        for m in self.members:
+        async for m in self.members:
             if m.id == status_response.leader:
                 leader = m
                 break
