@@ -7,9 +7,8 @@ Tests for `etcd3` module.
 
 import asyncio
 import base64
-
+import concurrent
 import json
-
 import os
 import subprocess
 import threading
@@ -19,15 +18,10 @@ import aiogrpc_etcd3
 import aiogrpc_etcd3.exceptions
 import aiogrpc_etcd3.proto as etcdrpc
 import aiogrpc_etcd3.utils as utils
-
-import concurrent
-
 import grpc
 
-from hypothesis.strategies import characters
-
 import pytest
-
+from hypothesis.strategies import characters
 
 pytestmark = pytest.mark.asyncio
 
@@ -361,6 +355,46 @@ class TestEtcd3(object):
         assert len(values) == 20
         for value, _ in values:
             assert value == b'i am a range'
+
+    async def test_get_count(self, etcd):
+        initial_count = await etcd.get_count()
+        assert initial_count == 0
+
+        for i in range(20):
+            etcdctl(etcd, 'put', '/doot/range{}'.format(i), 'i am a range')
+
+        for i in range(5):
+            etcdctl(
+                etcd, 'put', '/doot/notrange{}'.format(i), 'i am a not range')
+
+        count = await etcd.get_count()
+        assert count == 25
+
+        prefix_count = await etcd.get_count(key_prefix='/doot/range')
+        assert prefix_count == 20
+
+    async def test_get_keys(self, etcd):
+        for i in range(20):
+            etcdctl(etcd, 'put', '/doot/range{}'.format(i), 'i am a range')
+
+        for i in range(5):
+            etcdctl(
+                etcd, 'put', '/doot/notrange{}'.format(i), 'i am a not range')
+
+        keys = []
+        async for kvm in etcd.get_keys():
+            keys.append(kvm)
+        assert len(keys) == 25
+        assert len(set(kvm.key for kvm in keys)) == len(keys)
+        for kvm in keys:
+            assert kvm.key.decode().startswith('/doot')
+
+        keys = []
+        async for kvm in etcd.get_keys('/doot/range'):
+            keys.append(kvm)
+        assert len(keys) == 20
+        for kvm in keys:
+            assert kvm.key.decode().startswith('/doot/range')
 
     async def test_all_not_found_error(self, etcd):
         result = []
