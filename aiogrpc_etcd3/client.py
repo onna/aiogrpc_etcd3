@@ -1,31 +1,27 @@
 import asyncio
-
 import functools
 import inspect
 
-from aiogrpc_etcd3 import exceptions as exceptions
-from aiogrpc_etcd3 import leases as leases
+import aiogrpc
 import aiogrpc_etcd3.locks as locks
 import aiogrpc_etcd3.members
 import aiogrpc_etcd3.transactions as transactions
 import aiogrpc_etcd3.utils as utils
 import aiogrpc_etcd3.watch as watch
-
-import aiogrpc
-
 import grpc
 import grpc._channel
+from aiogrpc_etcd3 import exceptions as exceptions
+from aiogrpc_etcd3 import leases as leases
 
 from .proto.rpc_pb2 import (
     AlarmRequest, AuthenticateRequest, CompactionRequest, DefragmentRequest,
     DeleteRangeRequest, HashRequest, LeaseGrantRequest, LeaseKeepAliveRequest,
-    LeaseRevokeRequest, LeaseTimeToLiveRequest,
-    MemberAddRequest, MemberListRequest, MemberRemoveRequest,
-    MemberUpdateRequest, NONE, NOSPACE, PutRequest, RangeRequest,
-    RequestOp, SnapshotRequest, StatusRequest, TxnRequest)
+    LeaseRevokeRequest, LeaseTimeToLiveRequest, MemberAddRequest,
+    MemberListRequest, MemberRemoveRequest, MemberUpdateRequest, NONE, NOSPACE,
+    PutRequest, RangeRequest, RequestOp, SnapshotRequest, StatusRequest,
+    TxnRequest)
 from .proto.rpc_pb2_grpc import (
     AuthStub, ClusterStub, KVStub, LeaseStub, MaintenanceStub, WatchStub)
-
 
 _EXCEPTIONS_BY_CODE = {
     grpc.StatusCode.INTERNAL: exceptions.InternalServerError,
@@ -213,8 +209,8 @@ class Etcd3Client(object):
                                  sort_order=None,
                                  sort_target='key',
                                  serializable=None,
-                                 keys_only=None,
-                                 count_only=None,
+                                 keys_only=False,
+                                 count_only=False,
                                  min_mod_revision=None,
                                  max_mod_revision=None,
                                  min_create_revision=None,
@@ -223,6 +219,9 @@ class Etcd3Client(object):
         range_request.key = utils.to_bytes(key)
         if range_end is not None:
             range_request.range_end = utils.to_bytes(range_end)
+
+        range_request.keys_only = keys_only
+        range_request.count_only = count_only
 
         if sort_order is None:
             range_request.sort_order = RangeRequest.NONE
@@ -332,6 +331,61 @@ class Etcd3Client(object):
         else:
             for kv in range_response.kvs:
                 yield (kv.value, KVMetadata(kv))
+
+    @_handle_errors
+    async def get_count(self, key_prefix=None):
+        """
+        Get count of all keys or keys with specified prefix.
+
+        :param key_prefix: key_prefix for keys to count
+        :type key_prefix: str or bytes
+        :return: number of keys with specified prefix
+        :rtype: int
+        """
+        if key_prefix is not None:
+            key = key_prefix
+            range_end = utils.increment_last_byte(utils.to_bytes(key_prefix))
+        else:
+            key = range_end = b'\0'
+
+        range_request = self._build_get_range_request(
+            key, range_end, count_only=True
+        )
+        range_response = await self.kvstub.Range(
+            range_request,
+            self.timeout,
+            credentials=self.call_credentials
+        )
+        return range_response.count
+
+    @_handle_errors
+    async def get_keys(self, key_prefix=None):
+        """
+        Get keys with specified prefix (all keys if no prefix specified).
+
+        :param prefix: prefix for keys to count
+        :type prefix: str or bytes
+        :return: async generator of metadata objects
+        """
+        if key_prefix is not None:
+            key = key_prefix
+            range_end = utils.increment_last_byte(utils.to_bytes(key_prefix))
+        else:
+            key = range_end = b'\0'
+
+        range_request = self._build_get_range_request(
+            key, range_end, keys_only=True
+        )
+        range_response = await self.kvstub.Range(
+            range_request,
+            self.timeout,
+            credentials=self.call_credentials
+        )
+        if range_response.count < 1:
+            return
+        else:
+            for kv in range_response.kvs:
+                yield KVMetadata(kv)
 
     def _build_put_request(self, key, value, lease=None):
         put_request = PutRequest()
