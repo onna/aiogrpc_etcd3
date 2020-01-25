@@ -107,7 +107,10 @@ class EtcdTokenCallCredentials(grpc.AuthMetadataPlugin):
 class Etcd3Client(object):
     def __init__(self, host='localhost', port=2379,
                  ca_cert=None, cert_key=None, cert_cert=None, timeout=None,
-                 user=None, password=None):
+                 user=None, password=None, loop=None):
+
+        if loop is None:
+            loop = asyncio.get_event_loop()
 
         self._url = '{host}:{port}'.format(host=host, port=port)
 
@@ -120,7 +123,8 @@ class Etcd3Client(object):
                     cert_cert
                 )
                 self.uses_secure_channel = True
-                self.channel = aiogrpc.secure_channel(self._url, credentials)
+                self.channel = aiogrpc.secure_channel(
+                    self._url, credentials, loop=loop)
             elif any(cert_params):
                 # some of the cert parameters are set
                 raise ValueError(
@@ -129,15 +133,18 @@ class Etcd3Client(object):
             else:
                 credentials = self._get_secure_creds(ca_cert, None, None)
                 self.uses_secure_channel = True
-                self.channel = aiogrpc.secure_channel(self._url, credentials)
+                self.channel = aiogrpc.secure_channel(
+                    self._url, credentials, loop=loop)
         else:
             self.uses_secure_channel = False
-            self.channel = aiogrpc.insecure_channel(self._url)
+            self.channel = aiogrpc.insecure_channel(self._url, loop=loop)
 
         self.timeout = timeout
         self.call_credentials = None
         self._user = user
         self._password = password
+
+        self._loop = loop
 
     async def initialization(self):
 
@@ -166,9 +173,9 @@ class Etcd3Client(object):
             WatchStub(self.channel),
             timeout=self.timeout,
             call_credentials=self.call_credentials,
+            loop=self._loop
         )
-        loop = asyncio.get_event_loop()
-        self.watchtask = loop.create_task(self.watcher.run())
+        self.watchtask = self._loop.create_task(self.watcher.run())
         self.clusterstub = ClusterStub(self.channel)
         self.leasestub = LeaseStub(self.channel)
         self.maintenancestub = MaintenanceStub(self.channel)
@@ -1046,7 +1053,7 @@ class Etcd3Client(object):
 async def client(
         host='localhost', port=2379,
         ca_cert=None, cert_key=None, cert_cert=None, timeout=None,
-        user=None, password=None):
+        user=None, password=None, loop=None):
     """Return an instance of an Etcd3Client."""
     clientobj = Etcd3Client(
         host=host,
@@ -1056,6 +1063,7 @@ async def client(
         cert_cert=cert_cert,
         timeout=timeout,
         user=user,
-        password=password)
+        password=password,
+        loop=loop)
     await clientobj.initialization()
     return clientobj
